@@ -16,6 +16,7 @@ import {
   terminerTicket,
   annulerTicket,
   declarerAbsent,
+  reactiverTicket,
   useTickets,
 } from "../data/ticketStore";
 
@@ -292,6 +293,24 @@ function EspaceAgent() {
     }
   }
 
+  const absents = ticketsDuService.filter(
+    (ticket) => ticket.statut === "NO_SHOW"
+  );
+
+  async function reactiver(id, numero) {
+    setActionEnCours(true);
+    setMessage("");
+    setErreur("");
+
+    try {
+      await reactiverTicket(id);
+      setMessage(`Le ticket ${numero} a été réactivé.`);
+    } catch (error) {
+      setErreur(error.message || "Impossible de réactiver le ticket.");
+    } finally {
+      setActionEnCours(false);
+    }
+  }
   const compteurs = [
     {
       label: "En attente",
@@ -570,6 +589,48 @@ function EspaceAgent() {
           )}
         </section>
       </div>
+      <section className="panel" style={{ marginTop: "24px" }}>
+        <div className="section-head">
+          <h2>Tickets déclarés absents</h2>
+          <span className="count-pill">
+            {absents.length} absent(s)
+          </span>
+        </div>
+
+        {absents.length === 0 ? (
+          <p className="muted">Aucun ticket absent.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Numéro</th>
+                  <th>Service</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {absents.map((ticket) => (
+                  <tr key={ticket.id}>
+                    <td><strong>{ticket.numero}</strong></td>
+                    <td>{ticket.serviceNom}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={actionEnCours}
+                        onClick={() => reactiver(ticket.id, ticket.numero)}
+                      >
+                        Réactiver
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </main>
   );
 }

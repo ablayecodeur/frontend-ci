@@ -23,7 +23,8 @@ import {
 import { listerGuichets } from "../api/counters";
 
 import {
-  useServices,
+  useServicesState,
+  chargerServices,
   peutAttribuerTicket,
   serviceEstOuvert,
 } from "../data/serviceStore";
@@ -50,7 +51,7 @@ function normaliserTicket(ticket, serviceNom = "") {
 }
 
 function EspaceUsager() {
-  const services = useServices();
+  const { services, loading: servicesEnChargement, error: erreurServices } = useServicesState();
   const { hash, key } = useLocation();
 
   const [serviceId, setServiceId] = useState("");
@@ -364,17 +365,35 @@ function EspaceUsager() {
             </span>
           </div>
 
-          {services.length === 0 ? (
-            <div className="empty-state panel">
-              <p>
-                <strong>Aucun service disponible</strong>
-              </p>
-              <p>
-                La liste des services est vide. Veuillez réessayer plus tard.
-              </p>
+          {erreurServices && services.length > 0 && (
+            <p className="notice notice-error" role="status">
+              Actualisation impossible : {erreurServices}
+            </p>
+          )}
+
+          {servicesEnChargement && services.length === 0 ? (
+            <div className="empty-state panel" role="status">
+              <p><strong>Chargement des services...</strong></p>
+              <p>Veuillez patienter.</p>
             </div>
-          ) : (
-            <div className="services-grid">
+          ) : erreurServices && services.length === 0 ? (
+            <div className="empty-state panel" role="alert">
+              <p><strong>Impossible de charger les services.</strong></p>
+              <p>{erreurServices}</p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={chargerServices}
+              >
+                Réessayer
+              </button>
+            </div>
+          ) : services.length === 0 ? (
+            <div className="empty-state panel">
+              <p><strong>Aucun service disponible</strong></p>
+              <p>La liste des services est vide. Veuillez réessayer plus tard.</p>
+            </div>
+          ) : (            <div className="services-grid">
               {services.map((service, index) => {
                 const etat = disponibilite(service);
                 const selectionne = String(service.id) === serviceId;
