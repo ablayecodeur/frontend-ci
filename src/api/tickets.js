@@ -61,3 +61,17 @@ export function reactiverTicket(id) {
     method: "POST",
   });
 }
+
+export function listerMesTickets(params = {}) {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      query.set(key, value);
+    }
+  });
+
+  const suffixe = query.toString();
+
+  return apiRequest(`/api/me/tickets${suffixe ? `?${suffixe}` : ""}`);
+}

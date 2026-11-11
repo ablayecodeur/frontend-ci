@@ -1,4 +1,17 @@
 ﻿const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const TOKEN_KEY = "samafile_access_token";
+
+export function getAccessToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+
+export function setAccessToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+
+export function clearAccessToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
 
 export class ApiError extends Error {
   constructor(message, status, code, details = null) {
@@ -15,6 +28,12 @@ export async function apiRequest(path, options = {}) {
     Accept: "application/json",
     ...options.headers,
   };
+
+  const token = getAccessToken();
+
+  if (token && !headers.Authorization) {
+    headers.Authorization = `Bearer ${token}`;
+  }
 
   if (options.body) {
     headers["Content-Type"] = "application/json";

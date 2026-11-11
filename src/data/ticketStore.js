@@ -122,8 +122,6 @@ export async function creerTicket(service, userName) {
   const resultat = await creerTicketAPI(service.id, userName);
   const details = await obtenirTicket(resultat.id);
 
-  await chargerTickets();
-
   return normaliserTicket(details, service.nom);
 }
 

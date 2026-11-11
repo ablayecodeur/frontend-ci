@@ -17,10 +17,11 @@ import {
   annulerTicket,
   declarerAbsent,
   reactiverTicket,
-  useTickets,
+  useTicketsState,
 } from "../data/ticketStore";
 
 import { listerGuichets } from "../api/counters";
+import { useAuth } from "../context/AuthContext";
 import { useServices } from "../data/serviceStore";
 import PageHeader from "../components/PageHeader";
 import TicketStub from "../components/TicketStub";
@@ -36,8 +37,9 @@ function heureTicket(iso) {
 }
 
 function EspaceAgent() {
-  const tickets = useTickets();
+  const { tickets, loading: chargementTickets, error: erreurChargementTickets } = useTicketsState();
   const services = useServices();
+  const { user } = useAuth();
 
   const [serviceId, setServiceId] = useState("");
   const [counterId, setCounterId] = useState("");
@@ -48,16 +50,28 @@ function EspaceAgent() {
   const [actionEnCours, setActionEnCours] = useState(false);
 
   useEffect(() => {
-    if (!serviceId && services.length > 0) {
+    if (
+      user?.role !== "AGENT" &&
+      !serviceId &&
+      services.length > 0
+    ) {
       setServiceId(String(services[0].id));
     }
-  }, [services, serviceId]);
+  }, [services, serviceId, user?.role]);
 
   useEffect(() => {
     let actif = true;
 
     async function chargerGuichets() {
-      if (!serviceId) {
+      if (user?.role === "AGENT" && !user.counter_id) {
+        setGuichets([]);
+        setCounterId("");
+        setErreur("Aucun guichet n'est affecté à votre compte.");
+        setChargementGuichets(false);
+        return;
+      }
+
+      if (user?.role !== "AGENT" && !serviceId) {
         setGuichets([]);
         setCounterId("");
         return;
@@ -65,21 +79,43 @@ function EspaceAgent() {
 
       setChargementGuichets(true);
       setErreur("");
-      setCounterId("");
+
+      if (user?.role !== "AGENT") {
+        setCounterId("");
+      }
 
       try {
-        const resultat = await listerGuichets(Number(serviceId));
+        const resultat = await listerGuichets(
+          user?.role === "AGENT" ? undefined : Number(serviceId)
+        );
 
         if (!actif) return;
 
-        const disponibles = resultat.filter(
-          (guichet) => guichet.is_active
-        );
+        if (user?.role === "AGENT") {
+          const guichetAffecte = resultat.find(
+            (guichet) => Number(guichet.id) === Number(user.counter_id)
+          );
 
-        setGuichets(disponibles);
+          if (!guichetAffecte) {
+            setGuichets([]);
+            setCounterId("");
+            setErreur("Votre guichet affecté est introuvable.");
+            return;
+          }
 
-        if (disponibles.length > 0) {
-          setCounterId(String(disponibles[0].id));
+          setGuichets([guichetAffecte]);
+          setCounterId(String(guichetAffecte.id));
+          setServiceId(String(guichetAffecte.service_id));
+        } else {
+          const disponibles = resultat.filter(
+            (guichet) => guichet.is_active
+          );
+
+          setGuichets(disponibles);
+
+          if (disponibles.length > 0) {
+            setCounterId(String(disponibles[0].id));
+          }
         }
       } catch (error) {
         if (actif) {
@@ -98,7 +134,7 @@ function EspaceAgent() {
     return () => {
       actif = false;
     };
-  }, [serviceId]);
+  }, [serviceId, user?.role, user?.counter_id]);
 
   const serviceSelectionne = services.find(
     (service) => service.id === Number(serviceId)
@@ -357,7 +393,7 @@ function EspaceAgent() {
           id="agent-service"
           value={serviceId}
           onChange={changerService}
-          disabled={services.length === 0 || actionEnCours}
+          disabled={user?.role === "AGENT" || services.length === 0 || actionEnCours}
           style={{
             width: "100%",
             maxWidth: "450px",
@@ -395,7 +431,7 @@ function EspaceAgent() {
           id="agent-guichet"
           value={counterId}
           onChange={changerGuichet}
-          disabled={chargementGuichets || guichets.length === 0 || actionEnCours}
+          disabled={user?.role === "AGENT" || chargementGuichets || guichets.length === 0 || actionEnCours}
           style={{
             width: "100%",
             maxWidth: "450px",
@@ -445,6 +481,18 @@ function EspaceAgent() {
           </div>
         ))}
       </section>
+
+      {chargementTickets && tickets.length === 0 && (
+        <p className="notice" role="status">
+          Chargement des tickets...
+        </p>
+      )}
+
+      {erreurChargementTickets && (
+        <p className="notice notice-error" role="alert">
+          Impossible d'actualiser les tickets : {erreurChargementTickets}
+        </p>
+      )}
 
       {message && (
         <p className="notice" role="status">

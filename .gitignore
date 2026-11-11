@@ -29,3 +29,7 @@ dist-ssr
 
 # Temporary backup files
 *.bak
+
+# Sauvegardes locales
+*.backup*
+*.bak*

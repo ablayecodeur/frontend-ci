@@ -16,7 +16,7 @@ import {
 } from "../data/ticketStore";
 
 import {
-  listerTickets,
+  listerMesTickets,
   obtenirTicket,
   obtenirPosition,
 } from "../api/tickets";
@@ -220,7 +220,7 @@ function EspaceUsager() {
       let total = 0;
 
       do {
-        const resultat = await listerTickets({
+        const resultat = await listerMesTickets({
           limit: 200,
           offset,
         });
@@ -654,6 +654,13 @@ function EspaceUsager() {
                   Votre passage est en cours de traitement.
                 </p>
               )}
+
+              {ticketActuel.statut === "WAITING" &&
+                ticketActuel.notification && (
+                  <p className="stub-callout" role="status">
+                    {ticketActuel.notification}
+                  </p>
+                )}
 
               {ticketActuel.statut === "WAITING" &&
                 positionTicket != null && (
