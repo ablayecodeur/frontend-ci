@@ -29,7 +29,7 @@ function convertirService(service) {
     description: "",
     heureOuverture: service.opening_time,
     heureFermeture: service.closing_time,
-    heureLimiteTickets: service.closing_time,
+    heureLimiteTickets: service.ticket_cutoff_time || service.closing_time,
     actif: true,
     ouvert: service.is_open,
     distributionOuverte: service.ticket_distribution_open,
