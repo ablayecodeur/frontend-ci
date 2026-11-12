@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   Hourglass,
@@ -48,6 +48,7 @@ function EspaceAgent() {
   const [erreur, setErreur] = useState("");
   const [chargementGuichets, setChargementGuichets] = useState(false);
   const [actionEnCours, setActionEnCours] = useState(false);
+  const [absenceDue, setAbsenceDue] = useState(false);
 
   useEffect(() => {
     if (
@@ -159,26 +160,22 @@ function EspaceAgent() {
       ["CALLED", "IN_PROGRESS"].includes(ticket.statut)
   );
 
-  const absencesEnCours = useRef(new Set());
-
   useEffect(() => {
+    setAbsenceDue(false);
+
     if (
       !ticketEnCours ||
       ticketEnCours.statut !== "CALLED" ||
-      !ticketEnCours.calledAt ||
-      actionEnCours
+      !ticketEnCours.calledAt
     ) {
       return;
     }
 
-    const ticketId = ticketEnCours.id;
-    const numeroTicket = ticketEnCours.numero;
     const timeoutSecondes =
       serviceSelectionne?.noShowTimeoutSeconds || 120;
-
     const valeurDate = ticketEnCours.calledAt;
     const dateAppel = new Date(
-      /(?:Z|[+-]\d{2}:?\d{2})$/i.test(valeurDate)
+      /(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(valeurDate)
         ? valeurDate
         : `${valeurDate}Z`
     );
@@ -188,46 +185,23 @@ function EspaceAgent() {
       return;
     }
 
-    const intervalle = setInterval(async () => {
+    const verifierDelai = () => {
       const tempsEcoule = Date.now() - dateAppel.getTime();
-      const delaiEcoule = timeoutSecondes * 1000;
-
-      if (
-        tempsEcoule < delaiEcoule ||
-        absencesEnCours.current.has(ticketId)
-      ) {
-        return;
+      if (tempsEcoule >= timeoutSecondes * 1000) {
+        setAbsenceDue(true);
+        clearInterval(intervalle);
       }
+    };
 
-      absencesEnCours.current.add(ticketId);
-
-      try {
-        await declarerAbsent(ticketId);
-        setMessage(
-          `Le ticket ${numeroTicket} a été déclaré absent automatiquement.`
-        );
-        setErreur("");
-      } catch (error) {
-        absencesEnCours.current.delete(ticketId);
-
-        if (
-          !String(error.message || "").includes("NO_SHOW_TOO_EARLY")
-        ) {
-          setErreur(
-            error.message || "Impossible de déclarer le ticket absent."
-          );
-        }
-      }
-    }, 1000);
+    const intervalle = setInterval(verifierDelai, 1000);
+    verifierDelai();
 
     return () => clearInterval(intervalle);
   }, [
     ticketEnCours?.id,
     ticketEnCours?.statut,
     ticketEnCours?.calledAt,
-    ticketEnCours?.numero,
     serviceSelectionne?.noShowTimeoutSeconds,
-    actionEnCours,
   ]);
 
   const enAttente = ticketsDuService.filter(
@@ -307,6 +281,24 @@ function EspaceAgent() {
       setMessage(`Ticket ${ticketEnCours.numero} terminé.`);
     } catch (error) {
       setErreur(error.message || "Impossible de terminer le ticket.");
+    } finally {
+      setActionEnCours(false);
+    }
+  }
+
+  async function confirmerAbsence() {
+    if (!ticketEnCours || ticketEnCours.statut !== "CALLED" || !absenceDue) return;
+
+    setActionEnCours(true);
+    setMessage("");
+    setErreur("");
+
+    try {
+      await declarerAbsent(ticketEnCours.id);
+      setAbsenceDue(false);
+      setMessage(`Le ticket ${ticketEnCours.numero} a été déclaré absent par l'agent.`);
+    } catch (error) {
+      setErreur(error.message || "Impossible de déclarer le ticket absent.");
     } finally {
       setActionEnCours(false);
     }
@@ -523,6 +515,13 @@ function EspaceAgent() {
                 statut={ticketEnCours.statut}
               />
 
+              {ticketEnCours.statut === "CALLED" && absenceDue && (
+                <p className="notice notice-warning" role="alert">
+                  Le délai de présentation est écoulé. Vérifiez la présence de l'usager
+                  puis confirmez son absence si nécessaire.
+                </p>
+              )}
+
               <div className="action-row">
                 {ticketEnCours.statut === "CALLED" && (
                   <button
@@ -545,6 +544,18 @@ function EspaceAgent() {
                   >
                     <Check size={18} aria-hidden="true" />
                     Terminer le passage
+                  </button>
+                )}
+
+                {ticketEnCours.statut === "CALLED" && absenceDue && (
+                  <button
+                    type="button"
+                    className="btn btn-danger"
+                    onClick={confirmerAbsence}
+                    disabled={actionEnCours}
+                  >
+                    <Ban size={18} aria-hidden="true" />
+                    Confirmer l'absence
                   </button>
                 )}
 
