@@ -11,6 +11,7 @@ const formulaireVide = {
   name: "",
   opening_time: "08:00",
   closing_time: "16:00",
+  ticket_cutoff_minutes_before_closing: 30,
   no_show_timeout_seconds: 120,
 };
 
@@ -51,6 +52,7 @@ function GestionServices() {
       name: service.name,
       opening_time: service.opening_time,
       closing_time: service.closing_time,
+      ticket_cutoff_minutes_before_closing: service.ticket_cutoff_minutes_before_closing ?? 30,
       no_show_timeout_seconds: service.no_show_timeout_seconds,
     });
     setMessage("");
@@ -73,6 +75,7 @@ function GestionServices() {
       name: formulaire.name.trim(),
       opening_time: formulaire.opening_time,
       closing_time: formulaire.closing_time,
+      ticket_cutoff_minutes_before_closing: Number(formulaire.ticket_cutoff_minutes_before_closing),
       no_show_timeout_seconds: Number(formulaire.no_show_timeout_seconds),
     };
 
@@ -161,10 +164,17 @@ function GestionServices() {
                 <input style={champStyle} type="time" name="closing_time" value={formulaire.closing_time} onChange={modifierChamp} required />
               </label>
               <label>
+                Fin de prise des tickets (minutes avant fermeture)
+                <input style={champStyle} type="number" name="ticket_cutoff_minutes_before_closing" min="0" max="1440" value={formulaire.ticket_cutoff_minutes_before_closing} onChange={modifierChamp} required />
+              </label>
+              <label>
                 Délai d'absence (secondes)
                 <input style={champStyle} type="number" name="no_show_timeout_seconds" min="10" max="3600" value={formulaire.no_show_timeout_seconds} onChange={modifierChamp} required />
               </label>
             </div>
+            <p style={{ color: "var(--muted)", marginTop: 12 }}>
+              Par défaut, les tickets sont coupés 30 minutes avant la fermeture. Mettez 0 pour autoriser les prises jusqu'à la fermeture. Si l'avance couvre toute la durée du service, aucun ticket ne sera délivré.
+            </p>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 20 }}>
               <button className="btn btn-primary" type="submit" disabled={action}>
                 <Save size={17} /> {action ? "Enregistrement..." : editionId ? "Enregistrer les modifications" : "Créer le service"}
@@ -189,6 +199,7 @@ function GestionServices() {
                   <h3 style={{ marginBottom: 8 }}>{service.name}</h3>
                   <p style={{ color: "var(--muted)", marginBottom: 8 }}>
                     Horaires : {service.opening_time} – {service.closing_time}
+                    {" · "}Fin de prise : {service.ticket_cutoff_time} ({service.ticket_cutoff_minutes_before_closing} min avant fermeture)
                     {" · "}Délai d'absence : {service.no_show_timeout_seconds} s
                   </p>
                   <span className={`pill ${service.is_active ? "pill-open" : "pill-off"}`}>

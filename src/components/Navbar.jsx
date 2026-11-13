@@ -86,7 +86,7 @@ function Navbar() {
               onClick={handleLogout}
             >
               <LogOut size={18} aria-hidden="true" />
-              DÃ©connexion
+              Déconnexion
             </button>
           )}
         </div>

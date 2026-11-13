@@ -19,18 +19,21 @@ function Connexion() {
     event.preventDefault();
     setErreur("");
     setChargement(true);
+    const valeurs = new FormData(event.currentTarget);
+    const adresse = String(valeurs.get("email") || "").trim();
+    const motDePasse = String(valeurs.get("password") || "");
 
     try {
       let user;
 
       if (mode === "login") {
-        user = await login({ email, password });
+        user = await login({ email: adresse, password: motDePasse });
       } else {
         user = await register({
-          email,
-          password,
-          full_name: fullName,
-          phone: phone || null,
+          email: adresse,
+          password: motDePasse,
+          full_name: String(valeurs.get("full_name") || "").trim(),
+          phone: String(valeurs.get("phone") || "").trim() || null,
         });
       }
 
@@ -94,6 +97,7 @@ function Connexion() {
               <label htmlFor="fullName">Nom complet</label>
               <input
                 id="fullName"
+                name="full_name"
                 type="text"
                 autoComplete="name"
                 value={fullName}
@@ -105,6 +109,7 @@ function Connexion() {
               <label htmlFor="phone">Téléphone</label>
               <input
                 id="phone"
+                name="phone"
                 type="tel"
                 autoComplete="tel"
                 value={phone}
@@ -117,6 +122,7 @@ function Connexion() {
           <label htmlFor="email">Adresse e-mail</label>
           <input
             id="email"
+            name="email"
             type="email"
             autoComplete="email"
             value={email}
@@ -128,6 +134,7 @@ function Connexion() {
           <label htmlFor="password">Mot de passe</label>
           <input
             id="password"
+            name="password"
             type="password"
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             minLength={mode === "register" ? 8 : undefined}

@@ -1,4 +1,5 @@
-﻿const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+// Same-origin API: Vite and nginx proxy /api and /health to the backend.
+const API_BASE_URL = import.meta.env.VITE_API_URL || "";
 const TOKEN_KEY = "samafile_access_token";
 
 export function getAccessToken() {
