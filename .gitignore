@@ -33,3 +33,6 @@ dist-ssr
 # Sauvegardes locales
 *.backup*
 *.bak*
+
+# Rapports de CI
+reports/
